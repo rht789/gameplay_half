@@ -109,21 +109,38 @@ const WaitingRoom = () => {
     <div className="waiting-room-container">
       <div className="waiting-room-content">
         <div className="header-section">
-          <h1>Waiting Room</h1>
-          <div className="session-info">
-            <p>Session Code: {sessionDetails?.sessionCode}</p>
-            <p>Quiz: {sessionDetails?.quizName}</p>
+          <div className="quiz-code">
+            Session Code: <span>{sessionDetails?.sessionCode}</span>
           </div>
         </div>
 
-        <div className="status-section">
-          <h2>Your Status: <span className={`status-badge ${status}`}>{status}</span></h2>
-          {status === 'waiting' && (
-            <p>Please wait for the host to approve your participation</p>
-          )}
-          {status === 'approved' && (
-            <p>You're approved! Waiting for the quiz to start...</p>
-          )}
+        <div className="quiz-info-section">
+          <h1>{sessionDetails?.quizName}</h1>
+          <div className="status-section">
+            <h2>Your Status: <span className={`status-badge ${status}`}>{status}</span></h2>
+            {status === 'waiting' && (
+              <p className="status-message">Please wait for the host to approve your participation</p>
+            )}
+            {status === 'approved' && (
+              <p className="status-message success">You're approved! Waiting for the quiz to start...</p>
+            )}
+          </div>
+        </div>
+
+        <div className="participants-section">
+          <div className="section-header">
+            <h2>Participants ({sessionDetails?.participants?.length || 0})</h2>
+          </div>
+          <div className="participants-list">
+            {sessionDetails?.participants?.map(participant => (
+              <div key={participant.id} className="participant-item">
+                <span className="participant-name">{participant.username}</span>
+                <span className={`status-badge ${participant.status}`}>
+                  {participant.status}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

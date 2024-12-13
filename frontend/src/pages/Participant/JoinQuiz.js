@@ -40,23 +40,25 @@ const JoinQuiz = () => {
 
   return (
     <div className="join-quiz-container">
-      <div className="join-quiz-content">
-        <h1>Join a Quiz</h1>
+      <div className="join-quiz-card">
+        <h2>Join a Quiz</h2>
+        <p>Enter the session code provided by your quiz host</p>
         <form onSubmit={handleSubmit}>
-          <div className="input-group">
+          <div className="code-input-container">
             <input
               type="text"
               value={sessionCode}
               onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-              placeholder="Enter Session Code"
+              placeholder="Enter 6-digit code"
               maxLength={6}
+              className="code-input"
               required
             />
           </div>
           <button 
             type="submit" 
             className="join-button"
-            disabled={loading || !sessionCode}
+            disabled={loading || sessionCode.length !== 6}
           >
             {loading ? 'Joining...' : 'Join Quiz'}
           </button>
