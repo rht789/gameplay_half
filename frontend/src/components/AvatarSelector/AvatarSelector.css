@@ -1,0 +1,14 @@
+.avatar-option {
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.avatar-option:hover {
+  transform: scale(1.05);
+  border-color: #1976d2;
+}
+
+.avatar-option.selected {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+} 

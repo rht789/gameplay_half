@@ -1,0 +1,193 @@
+/* src/components/Navbar/Navbar.css */
+
+.navbar {
+  background-color: #7556f0;
+  color: #f4f3ff;
+  padding: 0.94rem 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #f4f3ff;
+}
+
+.brand-text {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.nav-items {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: #f4f3ff !important;
+  text-decoration: none;
+  font-weight: 500;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+  padding: 6px 16px !important;
+  text-transform: none !important;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.login-button {
+  color: #f4f3ff !important;
+  font-size: 1rem !important;
+  padding: 0.625rem 1.5rem !important;
+  text-transform: none !important;
+}
+
+.login-button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.signup-button {
+  background-color: #f4f3ff !important;
+  color: #7556f0 !important;
+  font-size: 1rem !important;
+  padding: 0.625rem 1.5rem !important;
+  text-transform: none !important;
+  border-radius: 8px !important;
+}
+
+.signup-button:hover {
+  background-color: #ebeafd !important;
+}
+
+.brand-logo {
+  height: 40px;
+  width: auto;
+  margin-right: 8px;
+}
+
+.profile-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+
+.profile-circle {
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7556f0;
+  transition: background-color 0.2s;
+}
+
+.profile-circle:hover {
+  background-color: #f5f5f5;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-width: 150px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  color: #333;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.search-container {
+  position: relative;
+  width: 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.625rem 1rem 0.625rem 2.5rem;
+  border-radius: 9999px;
+  background-color: #8d75f2;
+  color: white;
+  border: none;
+}
+
+.search-input::placeholder {
+  color: #e0e0e0;
+}
+
+.search-input:focus {
+  outline: none;
+  background-color: #9681f3;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #e0e0e0;
+}
+
+.join-quiz-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.join-quiz-btn:hover {
+  background-color: #218838;
+}
+  

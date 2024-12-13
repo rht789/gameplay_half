@@ -1,0 +1,212 @@
+.create-question-container {
+  min-height: 100vh;
+  background-color: #f4f3ff;
+  padding: 2rem;
+}
+
+.question-card {
+  max-width: 48rem;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #f4f3ff;
+  border-radius: 12px;
+  border: 1px solid #e3e3e3;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #271362;
+  margin-bottom: 1.5rem;
+}
+
+/* Form Fields Styling */
+.form-field {
+  margin-bottom: 1.5rem;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #271362;
+  margin-bottom: 0.5rem;
+}
+
+/* Input and Select Styling */
+.MuiInputBase-root {
+  border: 1px solid #4e26b1 !important;
+  background-color: #f4f3ff !important;
+}
+
+.MuiInputBase-root:hover {
+  border-color: #7556f0 !important;
+}
+
+.MuiInputBase-root.Mui-focused {
+  border-color: #7556f0 !important;
+  box-shadow: 0 0 0 1px #7556f0 !important;
+}
+
+/* Options Section */
+.options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Switch Styling */
+.correct-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.switch-label {
+  font-size: 0.875rem;
+  color: #412191;
+}
+
+/* Button Styling */
+.add-option-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #4e26b1;
+  color: #7556f0;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.add-option-btn:hover {
+  background-color: #ebeafd;
+}
+
+.save-question-btn.MuiButton-root {
+  background-color: #7556f0 !important;
+  color: #f4f3ff !important;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.save-question-btn.MuiButton-root:hover {
+  background-color: #6d40e7;
+}
+
+/* Time Limit Slider */
+.time-limit-container {
+  margin: 1.5rem 0;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.time-display {
+  min-width: 3rem;
+  color: #412191;
+  font-size: 0.875rem;
+}
+
+/* Difficulty Level Radio Group */
+.difficulty-container {
+  margin: 1.5rem 0;
+}
+
+.radio-group {
+  display: flex;
+  gap: 2rem;
+  margin-top: 0.5rem;
+}
+
+.radio-label {
+  color: #412191;
+  font-size: 0.875rem;
+}
+
+/* Saved Questions Section */
+.saved-questions {
+  margin-top: 2rem;
+}
+
+.saved-question-card {
+  padding: 1rem;
+  border: 1px solid #e3e3e3;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.question-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.badge {
+  background-color: #ebeafd;
+  color: #412191;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+.quiz-finalized-message {
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: #e8f4fd;
+  border: 1px solid #b3e0ff;
+  border-radius: 4px;
+  color: #0066cc;
+}
+
+.add-question-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #412191;
+  font-size: 1.1rem;
+}
+
+.error-message {
+  text-align: center;
+  color: #dc2626;
+  padding: 20px;
+  background-color: #fee2e2;
+  border-radius: 4px;
+  margin: 20px 0;
+}

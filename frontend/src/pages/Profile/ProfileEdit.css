@@ -1,0 +1,51 @@
+.profile-edit-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #271362;
+  background-color: #f8f9fe;
+  text-align: left;
+}
+
+.profile-edit-input::placeholder {
+  color: #412191;
+}
+
+.profile-edit-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(117, 86, 240, 0.1);
+}
+
+/* Override any Material-UI default styles */
+.profile-edit-dialog .MuiTextField-root {
+  width: 100%;
+}
+
+.profile-edit-dialog .MuiOutlinedInput-root {
+  background-color: #f8f9fe;
+  border-radius: 8px;
+}
+
+.profile-edit-dialog .MuiOutlinedInput-notchedOutline {
+  border: none;
+}
+
+.profile-edit-dialog .MuiOutlinedInput-input {
+  padding: 12px;
+  color: #271362;
+}
+
+/* Add new styles for dialog content spacing */
+.profile-edit-dialog .MuiDialogContent-root {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Adjust spacing for section titles */
+.profile-edit-dialog .MuiTypography-subtitle1 {
+  margin-bottom: 8px;
+  margin-top: 12px;
+} 

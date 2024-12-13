@@ -1,0 +1,86 @@
+.question-card {
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  box-shadow: 0 2px 8px rgba(109, 64, 231, 0.1);
+}
+
+.radio-option {
+  transition: background-color 0.3s ease;
+}
+
+.radio-option:hover {
+  background-color: #ebeafd;
+}
+
+.fill-blank-input {
+  border: none;
+  border-bottom: 2px solid #6d40e7;
+  background: transparent;
+  padding: 4px;
+  margin: 0 8px;
+  width: 100px;
+}
+
+.fill-blank-input:focus {
+  outline: none;
+  border-bottom-color: #4e26b1;
+}
+
+.edit-button, .delete-button, .add-button {
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  padding: 4px 12px !important;
+  min-width: unset !important;
+  background-color: transparent !important;
+}
+
+.edit-button {
+  background-color: #fff !important;
+}
+
+.delete-button {
+  background-color: #fff !important;
+}
+
+.add-button {
+  background-color: #fff !important;
+}
+
+/* Add hover effect */
+.edit-button:hover, .delete-button:hover, .add-button:hover {
+  opacity: 0.9;
+}
+
+/* Override the styles from CreateQuiz.css and other files */
+.MuiButton-root.edit-button,
+.MuiButton-root.delete-button,
+.MuiButton-root.add-button {
+  background-color: transparent !important;
+  color: inherit !important;
+  margin-top: 0 !important;
+  padding: 4px 12px !important;
+}
+
+.MuiButton-root.edit-button:hover,
+.MuiButton-root.delete-button:hover,
+.MuiButton-root.add-button:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Specific button colors */
+.MuiButton-root.edit-button {
+  color: #7556f0 !important;
+  border-color: #7556f0 !important;
+}
+
+.MuiButton-root.delete-button {
+  color: #ff4d4f !important;
+  border-color: #ff4d4f !important;
+}
+
+.MuiButton-root.add-button {
+  color: #7556f0 !important;
+  border-color: #7556f0 !important;
+} 
