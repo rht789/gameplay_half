@@ -9,13 +9,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     sessionCode: {
       type: DataTypes.STRING(6),
-      unique: true,
       allowNull: false,
+      unique: true,
       validate: {
-        len: {
-          args: [6, 6],
-          msg: 'Session code must be exactly 6 characters long'
-        },
+        len: [6, 6],
         notEmpty: true
       }
     },
@@ -28,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     quizID: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: 'Quizzes',
@@ -36,12 +33,26 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
+      type: DataTypes.TINYINT(1),
+      allowNull: false,
+      defaultValue: 1
+    },
+    participantCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     },
     startTime: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
     tableName: 'Sessions',

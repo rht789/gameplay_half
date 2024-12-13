@@ -25,30 +25,27 @@ module.exports = (sequelize, DataTypes) => {
     },
     status: {
       type: DataTypes.ENUM('waiting', 'approved', 'rejected'),
+      allowNull: false,
       defaultValue: 'waiting'
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
     tableName: 'Participants',
+    timestamps: true,
     indexes: [
       {
         unique: true,
-        fields: ['sessionID', 'userID'],
-        name: 'unique_session_participant'
+        fields: ['sessionID', 'userID']
       }
     ]
   });
-
-  Participant.associate = function(models) {
-    Participant.belongsTo(models.Session, {
-      foreignKey: 'sessionID',
-      as: 'participantSession'
-    });
-
-    Participant.belongsTo(models.User, {
-      foreignKey: 'userID',
-      as: 'participantUser'
-    });
-  };
 
   return Participant;
 }; 

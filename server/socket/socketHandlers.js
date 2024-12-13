@@ -1,99 +1,165 @@
-const { Server } = require('socket.io');
-const socketAuthMiddleware = require('../middlewares/socketAuthMiddleware');
-const { Session, User } = require('../models');
+const { Session, Participant, User } = require('../models');
 
-module.exports = (server) => {
-  const io = new Server(server, {
-    cors: {
-      origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-      methods: ['GET', 'POST'],
-      credentials: true
-    },
-    path: '/socket.io',
-    transports: ['websocket', 'polling']
-  });
-
-  const activeSessions = new Map();
-
-  io.use(socketAuthMiddleware);
+module.exports = (io) => {
+  io.use(require('../middleware/socketMiddleware'));
 
   io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
+    console.log(`Socket connected: ${socket.id}`);
 
-    socket.on('join_session', async ({ sessionId, userId }) => {
+    // Join waiting room for participants
+    socket.on('join-waiting-room', async ({ sessionId }) => {
       try {
-        console.log(`Client ${socket.id} joining session ${sessionId}`);
-        
-        // Verify session exists
-        const session = await Session.findByPk(sessionId);
-        if (!session) {
-          throw new Error('Session not found');
-        }
-
-        // Get user details
-        const user = await User.findByPk(userId);
-        if (!user) {
-          throw new Error('User not found');
-        }
-
-        // Store user info on socket
-        socket.user = {
-          id: user.userID,
-          username: user.username
-        };
-
-        // Join room
-        const roomId = `session:${sessionId}`;
-        socket.join(roomId);
-
-        // Track session participants
-        if (!activeSessions.has(sessionId)) {
-          activeSessions.set(sessionId, new Set());
-        }
-        activeSessions.get(sessionId).add(socket.id);
-
-        // Notify others
-        socket.to(roomId).emit('participant_joined', {
-          id: socket.id,
-          ...socket.user
+        const session = await Session.findOne({
+          where: { sessionID: sessionId, isActive: true },
+          include: [{
+            model: Participant,
+            as: 'participants',
+            include: [{
+              model: User,
+              as: 'user',
+              attributes: ['username']
+            }]
+          }]
         });
 
-        // Send current participants
-        const participants = Array.from(activeSessions.get(sessionId))
-          .map(sid => {
-            const participantSocket = io.sockets.sockets.get(sid);
-            return participantSocket?.user ? {
-              id: participantSocket.id,
-              ...participantSocket.user
-            } : null;
-          })
-          .filter(Boolean);
+        if (!session) throw new Error('Session not found');
 
-        socket.emit('participants_list', participants);
+        // Check if user is a participant
+        const participant = await Participant.findOne({
+          where: { 
+            sessionID: sessionId,
+            userID: socket.user.id
+          }
+        });
 
-      } catch (error) {
-        console.error('Error in join_session:', error);
-        socket.emit('error', { message: error.message });
+        if (!participant) throw new Error('Not authorized to join this session');
+
+        socket.join(`session:${sessionId}`);
+        socket.emit('status-update', { status: participant.status });
+        
+        // Notify host about new participant
+        io.to(`session:${sessionId}`).emit('participant-joined', {
+          id: participant.participantID,
+          username: socket.user.username,
+          status: participant.status
+        });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Host joining their session
+    socket.on('join-session', async ({ sessionId }) => {
+      try {
+        const session = await Session.findOne({
+          where: { 
+            sessionID: sessionId,
+            hostID: socket.user.id,
+            isActive: true 
+          },
+          include: [{
+            model: Participant,
+            as: 'participants',
+            include: [{
+              model: User,
+              as: 'user',
+              attributes: ['username']
+            }]
+          }]
+        });
+
+        if (!session) throw new Error('Session not found or not authorized');
+
+        socket.join(`session:${sessionId}`);
+        socket.emit('session-update', {
+          participants: session.participants.map(p => ({
+            id: p.participantID,
+            username: p.user.username,
+            status: p.status
+          }))
+        });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Host approving a participant
+    socket.on('approve-participant', async ({ sessionId, participantId }) => {
+      try {
+        const session = await Session.findOne({
+          where: { sessionID: sessionId, hostID: socket.user.id }
+        });
+
+        if (!session) throw new Error('Not authorized to manage this session');
+
+        const participant = await Participant.findByPk(participantId);
+        if (!participant) throw new Error('Participant not found');
+
+        await participant.update({ status: 'approved' });
+        
+        io.to(`session:${sessionId}`).emit('participant-status-changed', {
+          participantId,
+          status: 'approved'
+        });
+
+        // Notify the specific participant
+        socket.to(`session:${sessionId}`).emit('status-update', {
+          status: 'approved'
+        });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Host removing a participant
+    socket.on('remove-participant', async ({ sessionId, participantId }) => {
+      try {
+        const session = await Session.findOne({
+          where: { sessionID: sessionId, hostID: socket.user.id }
+        });
+
+        if (!session) throw new Error('Not authorized to manage this session');
+
+        const participant = await Participant.findByPk(participantId);
+        if (!participant) throw new Error('Participant not found');
+
+        await participant.destroy();
+        
+        io.to(`session:${sessionId}`).emit('participant-removed', {
+          participantId
+        });
+
+        // Notify the removed participant
+        socket.to(`session:${sessionId}`).emit('removed-from-session');
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Host starting the quiz
+    socket.on('start-quiz', async ({ sessionId }) => {
+      try {
+        const session = await Session.findOne({
+          where: { sessionID: sessionId, hostID: socket.user.id }
+        });
+
+        if (!session) throw new Error('Not authorized to manage this session');
+
+        await session.update({ 
+          startTime: new Date()
+        });
+        
+        io.to(`session:${sessionId}`).emit('quiz-started', {
+          sessionId,
+          startTime: session.startTime
+        });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
       }
     });
 
     socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-      // Clean up from all sessions
-      activeSessions.forEach((clients, sessionId) => {
-        if (clients.has(socket.id)) {
-          clients.delete(socket.id);
-          io.to(`session:${sessionId}`).emit('participant_left', {
-            id: socket.id,
-            ...socket.user
-          });
-          if (clients.size === 0) {
-            activeSessions.delete(sessionId);
-          }
-        }
-      });
+      console.log(`Socket disconnected: ${socket.id}`);
     });
   });
-
-  return io;
 }; 

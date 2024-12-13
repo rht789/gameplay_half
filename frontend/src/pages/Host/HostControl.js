@@ -1,141 +1,108 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import io from 'socket.io-client';
-import axios from 'axios';
-import './styles/HostControl.css';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useSession } from '../../contexts/SessionContext';
+import socketService from '../../services/socketService';
 import { toast } from 'react-hot-toast';
-import { useAuth } from '../../contexts/AuthContext';
+import './styles/HostControl.css';
+import axios from 'axios';
 
 const HostControl = () => {
   const { sessionId } = useParams();
-  const [sessionDetails, setSessionDetails] = useState(null);
+  const navigate = useNavigate();
+  const { currentSession, participants, setParticipants } = useSession();
   const [socket, setSocket] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(null);
-  const [autoStartTimer, setAutoStartTimer] = useState(false);
-  const { user } = useAuth();
+  const [sessionDetails, setSessionDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let newSocket;
+  const fetchSessionDetails = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      newSocket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
-        auth: { token },
-        transports: ['websocket'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        timeout: 10000
-      });
-
-      newSocket.on('connect', () => {
-        console.log('Connected to socket server');
-        toast.success('Connected to session');
-        newSocket.emit('join-session', { sessionId });
-      });
-
-      newSocket.on('error', (error) => {
-        console.error('Socket error:', error);
-        toast.error(error.message || 'Connection error');
-      });
-
-      newSocket.on('participant-joined', (participant) => {
-        console.log('Participant joined:', participant);
-        setSessionDetails(prev => ({
-          ...prev,
-          participants: [...(prev?.participants || []), participant]
-        }));
-      });
-
-      newSocket.on('session-update', ({ participants }) => {
-        console.log('Session update received:', participants);
-        setSessionDetails(prev => ({
-          ...prev,
-          participants
-        }));
-      });
-
-      newSocket.on('participant-removed', ({ participantId }) => {
-        setSessionDetails(prev => ({
-          ...prev,
-          participants: prev.participants.filter(p => p.id !== participantId)
-        }));
-      });
-
-      setSocket(newSocket);
-
-      return () => {
-        if (newSocket) {
-          newSocket.disconnect();
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/api/v1/sessions/${sessionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
         }
-      };
+      );
+      
+      if (response.data.success) {
+        setSessionDetails(response.data.data);
+        setParticipants(response.data.data.participants || []);
+      } else {
+        toast.error('Failed to load session details');
+      }
     } catch (error) {
-      console.error('Socket initialization error:', error);
-      toast.error('Failed to connect to server');
+      console.error('Error fetching session details:', error);
+      toast.error(error.response?.data?.message || 'Failed to load session details');
+    } finally {
+      setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, setParticipants]);
 
   useEffect(() => {
-    const fetchSessionDetails = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/api/v1/sessions/${sessionId}`,
-          {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }
-        );
+    fetchSessionDetails();
+  }, [fetchSessionDetails]);
 
-        if (response.data.success) {
-          setSessionDetails(response.data.data);
+  useEffect(() => {
+    let socketInstance = null;
+    
+    const initializeSocket = async () => {
+      try {
+        socketInstance = socketService.connect();
+        if (socketInstance) {
+          setSocket(socketInstance);
+          
+          socketInstance.emit('join-session', { sessionId });
+          
+          socketInstance.on('participant-joined', (participant) => {
+            console.log('Participant joined:', participant);
+            setParticipants(prev => [...prev, participant]);
+          });
+
+          socketInstance.on('participant-status-changed', ({ participantId, status }) => {
+            console.log('Participant status changed:', participantId, status);
+            setParticipants(prev => 
+              prev.map(p => p.id === participantId ? { ...p, status } : p)
+            );
+          });
+
+          socketInstance.on('error', (error) => {
+            console.error('Socket error:', error);
+            toast.error(error.message);
+          });
         }
       } catch (error) {
-        console.error('Error fetching session details:', error);
-        toast.error('Failed to fetch session details');
+        console.error('Socket initialization error:', error);
+        toast.error('Failed to connect to server');
       }
     };
 
-    fetchSessionDetails();
-  }, [sessionId]);
+    initializeSocket();
+
+    return () => {
+      if (socketInstance) {
+        socketInstance.disconnect();
+      }
+    };
+  }, [sessionId, setParticipants]);
+
+  if (loading) {
+    return <div>Loading session details...</div>;
+  }
 
   const handleApprove = (participantId) => {
-    if (!socket?.connected) {
-      toast.error('Not connected to server');
-      return;
-    }
-
+    if (!socket) return;
     socket.emit('approve-participant', { sessionId, participantId });
-    setSessionDetails(prev => ({
-      ...prev,
-      participants: prev.participants.map(p => 
-        p.id === participantId ? { ...p, status: 'approved' } : p
-      )
-    }));
   };
 
   const handleRemove = (participantId) => {
-    if (!socket?.connected) {
-      toast.error('Not connected to server');
-      return;
-    }
-
-    // Don't allow host to remove themselves
-    const participant = sessionDetails.participants.find(p => p.id === participantId);
-    if (participant.userId === user?.id) {
-      toast.error("Host cannot remove themselves");
-      return;
-    }
-
+    if (!socket) return;
     socket.emit('remove-participant', { sessionId, participantId });
   };
 
   const startQuiz = () => {
-    if (!socket?.connected) {
-      toast.error('Not connected to server');
-      return;
-    }
-
+    if (!socket) return;
     socket.emit('start-quiz', { sessionId });
-    setAutoStartTimer(true);
   };
 
   return (
@@ -145,22 +112,16 @@ const HostControl = () => {
           <h1>Host Control Panel</h1>
           <div className="session-info">
             <div className="session-code">
-              Session Code: <span>{sessionDetails?.sessionCode}</span>
+              Session Code: <span>{sessionDetails?.sessionCode || 'Loading...'}</span>
             </div>
             <div className="participant-count">
-              {sessionDetails?.participants?.length || 0}
+              {participants.length} Participants
             </div>
           </div>
         </div>
 
-        {autoStartTimer && timeLeft && (
-          <div className="auto-start-banner">
-            Quiz will auto-start in: {timeLeft} seconds
-          </div>
-        )}
-
         <div className="participants-list">
-          {sessionDetails?.participants?.map(participant => (
+          {participants.map(participant => (
             <div key={participant.id} className="participant-row">
               <span className="participant-name">{participant.username}</span>
               <div className="action-buttons">
@@ -186,7 +147,7 @@ const HostControl = () => {
         <button 
           className="start-quiz-button"
           onClick={startQuiz}
-          disabled={!sessionDetails?.participants?.some(p => p.status === 'approved')}
+          disabled={!participants.some(p => p.status === 'approved')}
         >
           Start Quiz Now
         </button>

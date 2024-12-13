@@ -1,18 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const sessionController = require('../../controllers/sessionController');
-const { authenticateToken } = require('../../middlewares/authMiddleware');
+const authMiddleware = require('../../middleware/authMiddleware');
 
-// Join session route
-router.post('/join', authenticateToken, sessionController.joinSession);
+router.use(authMiddleware);
 
 // Get session details
-router.get('/:sessionId', authenticateToken, sessionController.getSessionDetails);
+router.get('/:sessionId', sessionController.getSessionDetails);
 
-// Approve participant
-router.put('/:sessionId/participants/:participantId/approve', authenticateToken, sessionController.approveParticipant);
+// Create session
+router.post('/create', sessionController.createSession);
 
-// Remove participant
-router.delete('/:sessionId/participants/:participantId', authenticateToken, sessionController.removeParticipant);
+// Join session
+router.post('/join', sessionController.joinSession);
 
 module.exports = router; 

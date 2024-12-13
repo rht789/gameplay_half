@@ -60,17 +60,20 @@ Object.keys(db).forEach(modelName => {
 // Session Associations
 db.Session.belongsTo(db.User, {
   foreignKey: 'hostID',
-  as: 'host'
+  as: 'host',
+  onDelete: 'CASCADE'
 });
 
 db.Session.belongsTo(db.Quiz, {
   foreignKey: 'quizID',
- as: 'quiz'
+  as: 'quiz',
+  onDelete: 'CASCADE'
 });
 
 db.Session.hasMany(db.Participant, {
   foreignKey: 'sessionID',
- as: 'participants'
+  as: 'participants',
+  onDelete: 'CASCADE'
 });
 
 // Participant Associations
@@ -82,6 +85,17 @@ db.Participant.belongsTo(db.Session, {
 db.Participant.belongsTo(db.User, {
   foreignKey: 'userID',
   as: 'user'
+});
+
+// User Associations (add these if not already present)
+db.User.hasMany(db.Session, {
+  foreignKey: 'hostID',
+  as: 'hostedSessions'
+});
+
+db.User.hasMany(db.Participant, {
+  foreignKey: 'userID',
+  as: 'participations'
 });
 
 db.sequelize = sequelize;

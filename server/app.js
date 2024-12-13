@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const profileRoutes = require('./routes/v1/profileRoutes');
 const v1Routes = require('./routes/v1');
+const socketAuthMiddleware = require('./middleware/socketMiddleware');
 
 const app = express();
 
