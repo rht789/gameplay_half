@@ -39,4 +39,7 @@ router.put('/:id/finalize', authenticateToken, quizController.finalizeQuiz);
 // Start session route
 router.post('/:id/start-session', authenticateToken, quizController.startSession);
 
+// Check active session route
+router.get('/:id/active-session', authenticateToken, quizController.checkActiveSession);
+
 module.exports = router;

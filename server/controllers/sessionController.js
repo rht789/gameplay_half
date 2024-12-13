@@ -10,6 +10,15 @@ const getSessionDetails = async (req, res) => {
         sessionID: sessionId,
         isActive: true
       },
+      attributes: [
+        'sessionID', 
+        'sessionCode', 
+        'isActive', 
+        'participantCount',
+        'sessionLifetime',
+        'expiresAt',
+        'hostID'
+      ],
       include: [
         {
           model: Quiz,
@@ -36,7 +45,7 @@ const getSessionDetails = async (req, res) => {
     }
 
     // Check if user is host or participant
-    const isHost = session.hostID === req.user.id;
+    const isHost = session.hostID === parseInt(req.user.id);
     const isParticipant = session.participants.some(p => p.userID === req.user.id);
 
     if (!isHost && !isParticipant) {
@@ -49,11 +58,14 @@ const getSessionDetails = async (req, res) => {
     res.json({
       success: true,
       data: {
-        sessionId: session.sessionID,
+        sessionID: session.sessionID,
         sessionCode: session.sessionCode,
         quizName: session.quiz.quizName,
-        hostId: session.hostID,
+        hostID: session.hostID,
         isActive: session.isActive,
+        participantCount: session.participantCount,
+        sessionLifetime: session.sessionLifetime,
+        expiresAt: session.expiresAt,
         participants: session.participants.map(p => ({
           id: p.participantID,
           username: p.user.username,

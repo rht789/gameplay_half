@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const quizService = require('../services/quizService');
 const Quiz_Question = require('../models/Quiz_Question');
 const generateCode = require('../utils/generateCode');
+const { Op } = require('sequelize');
 
 // Create a controller object to hold all methods
 const quizController = {
@@ -447,39 +448,48 @@ const quizController = {
   startSession: async (req, res) => {
     try {
       const { id: quizId } = req.params;
+      const { sessionLifetime = 24 } = req.body;
       const hostId = req.user.id;
 
-      // Verify quiz exists and is ready
-      const quiz = await Quiz.findOne({
+      // Check for active session first
+      const activeSession = await Session.findOne({
         where: {
           quizID: quizId,
-          status: 'ready',
-          createdBy: hostId
+          hostID: hostId,
+          isActive: true,
+          expiresAt: {
+            [Op.gt]: new Date()
+          }
         }
       });
 
-      if (!quiz) {
-        return res.status(404).json({
-          success: false,
-          message: 'Quiz not found or not ready'
+      if (activeSession) {
+        return res.status(200).json({
+          success: true,
+          message: 'Redirecting to active session',
+          data: {
+            sessionId: activeSession.sessionID,
+            sessionCode: activeSession.sessionCode,
+            isExisting: true
+          }
         });
       }
 
       // Generate session code
       const sessionCode = generateCode();
-      console.log('Generated session code:', sessionCode);
 
-      // Verify code length before creating session
-      if (sessionCode.length !== 6) {
-        throw new Error(`Invalid session code length: ${sessionCode.length}`);
-      }
+      // Calculate expiration time
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + sessionLifetime);
 
-      // Create session
+      // Create new session
       const session = await Session.create({
         sessionCode,
         hostID: hostId,
         quizID: quizId,
-        isActive: true
+        isActive: true,
+        sessionLifetime,
+        expiresAt
       });
 
       res.status(201).json({
@@ -487,7 +497,7 @@ const quizController = {
         data: {
           sessionId: session.sessionID,
           sessionCode: session.sessionCode,
-          quizName: quiz.quizName
+          isExisting: false
         }
       });
 
@@ -496,6 +506,38 @@ const quizController = {
       res.status(500).json({
         success: false,
         message: error.message || 'Error starting session'
+      });
+    }
+  },
+
+  checkActiveSession: async (req, res) => {
+    try {
+      const { id: quizId } = req.params;
+      const hostId = req.user.id;
+
+      const activeSession = await Session.findOne({
+        where: {
+          quizID: quizId,
+          hostID: hostId,
+          isActive: true,
+          expiresAt: {
+            [Op.gt]: new Date()
+          }
+        }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          hasActiveSession: !!activeSession,
+          sessionId: activeSession?.sessionID
+        }
+      });
+    } catch (error) {
+      console.error('Error checking active session:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error checking active session'
       });
     }
   }

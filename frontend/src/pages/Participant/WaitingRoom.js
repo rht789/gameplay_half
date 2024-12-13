@@ -28,10 +28,9 @@ const WaitingRoom = () => {
 
       if (response.data.success) {
         setSessionDetails(response.data.data);
-        setParticipants(response.data.data.participants || []);
         // Find current user's status
         const currentParticipant = response.data.data.participants.find(
-          p => p.id === response.data.data.currentParticipantId
+          p => p.id === parseInt(localStorage.getItem('userId'))
         );
         if (currentParticipant) {
           setStatus(currentParticipant.status);
@@ -40,15 +39,10 @@ const WaitingRoom = () => {
     } catch (error) {
       console.error('Error fetching session details:', error);
       toast.error('Failed to load session details');
-      navigate('/join-quiz');
     } finally {
       setLoading(false);
     }
-  }, [sessionId, navigate, setParticipants]);
-
-  useEffect(() => {
-    fetchSessionDetails();
-  }, [fetchSessionDetails]);
+  }, [sessionId]);
 
   useEffect(() => {
     let socketInstance = null;
@@ -58,27 +52,25 @@ const WaitingRoom = () => {
         socketInstance = socketService.connect();
         if (socketInstance) {
           setSocket(socketInstance);
+          
+          socketInstance.emit('join-session', { sessionId });
 
-          socketInstance.emit('join-waiting-room', { sessionId });
-
-          socketInstance.on('status-update', ({ status: newStatus }) => {
-            setStatus(newStatus);
-            if (newStatus === 'approved') {
-              toast.success('You have been approved to join the quiz!');
+          // Listen for status updates
+          socketInstance.on('participant-status-changed', ({ participantId, status: newStatus }) => {
+            if (participantId === parseInt(localStorage.getItem('userId'))) {
+              setStatus(newStatus);
+              if (newStatus === 'approved') {
+                toast.success("You've been approved!");
+              }
             }
           });
 
+          // Listen for quiz start
           socketInstance.on('quiz-started', () => {
-            navigate(`/quiz/${sessionId}`);
-          });
-
-          socketInstance.on('removed-from-session', () => {
-            toast.error('You have been removed from the session');
-            navigate('/join-quiz');
+            navigate(`/quiz/${sessionId}/participate`);
           });
 
           socketInstance.on('error', (error) => {
-            console.error('Socket error:', error);
             toast.error(error.message);
           });
         }
@@ -89,13 +81,14 @@ const WaitingRoom = () => {
     };
 
     initializeSocket();
+    fetchSessionDetails();
 
     return () => {
       if (socketInstance) {
         socketInstance.disconnect();
       }
     };
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, fetchSessionDetails]);
 
   if (loading) {
     return <div className="waiting-room-container">

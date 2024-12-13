@@ -20,6 +20,12 @@ import {
 } from 'react-feather';
 import './QuizList.css';
 import DeleteQuizModal from './DeleteQuiz';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 
 const QuizList = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -33,6 +39,9 @@ const QuizList = () => {
     quizId: null,
     quizTitle: ''
   });
+  const [showLifetimeDialog, setShowLifetimeDialog] = useState(false);
+  const [sessionLifetime, setSessionLifetime] = useState(24);
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
   
   const ITEMS_PER_PAGE = 6;
   const navigate = useNavigate();
@@ -154,20 +163,40 @@ const QuizList = () => {
 
   const handleStartQuiz = async (quiz) => {
     try {
-      const response = await quizService.startQuizSession(quiz.quizID);
+      // First check if there's an active session
+      const response = await quizService.checkActiveSession(quiz.quizID);
+      
+      if (response.data.hasActiveSession) {
+        // Redirect to existing session
+        toast.success('Redirecting to active session...');
+        navigate(`/host-control/${response.data.sessionId}`);
+      } else {
+        // Show dialog for new session
+        setSelectedQuiz(quiz);
+        setShowLifetimeDialog(true);
+      }
+    } catch (error) {
+      console.error('Error checking active session:', error);
+      toast.error('Failed to start session');
+    }
+  };
+
+  const handleStartSession = async () => {
+    try {
+      const response = await quizService.startQuizSession(selectedQuiz.quizID, sessionLifetime);
       
       if (response.success) {
-        navigate(`/host-control/${response.data.sessionId}`, {
-          state: {
-            sessionCode: response.data.sessionCode,
-            quizName: quiz.quizName
-          }
-        });
-        toast.success('Quiz session created successfully');
+        if (response.data.isExisting) {
+          toast.success('Redirecting to active session...');
+        }
+        navigate(`/host-control/${response.data.sessionId}`);
       }
     } catch (error) {
       console.error('Error starting quiz session:', error);
       toast.error(error.response?.data?.message || 'Failed to start quiz session');
+    } finally {
+      setShowLifetimeDialog(false);
+      setSelectedQuiz(null);
     }
   };
 
@@ -339,6 +368,43 @@ const QuizList = () => {
         onConfirm={handleDelete}
         quizTitle={deleteModal.quizTitle}
       />
+
+      {/* Session Lifetime Dialog */}
+      <Dialog 
+        open={showLifetimeDialog} 
+        onClose={() => setShowLifetimeDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Set Session Duration</DialogTitle>
+        <DialogContent>
+          <div className="lifetime-dialog-content">
+            <p>How long should this session remain active?</p>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Duration (hours)"
+              type="number"
+              fullWidth
+              value={sessionLifetime}
+              onChange={(e) => setSessionLifetime(Math.max(1, parseInt(e.target.value) || 1))}
+              inputProps={{ min: 1, max: 72 }}
+              helperText="Session can be active between 1 and 72 hours"
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowLifetimeDialog(false);
+            setSelectedQuiz(null);
+          }}>
+            Cancel
+          </Button>
+          <Button onClick={handleStartSession} color="primary" variant="contained">
+            Start Session
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

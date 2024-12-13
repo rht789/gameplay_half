@@ -80,9 +80,20 @@ const getQuiz = async (quizId) => {
   }
 };
 
-const startQuizSession = async (quizId) => {
+const startQuizSession = async (quizId, sessionLifetime) => {
   try {
-    const response = await api.post(`/quizzes/${quizId}/start-session`);
+    const response = await api.post(`/quizzes/${quizId}/start-session`, {
+      sessionLifetime
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const checkActiveSession = async (quizId) => {
+  try {
+    const response = await api.get(`/quizzes/${quizId}/active-session`);
     return response.data;
   } catch (error) {
     throw error;
@@ -100,6 +111,7 @@ const quizService = {
   finalizeQuiz,
   getQuiz,
   startQuizSession,
+  checkActiveSession,
   // ... other methods
 };
 

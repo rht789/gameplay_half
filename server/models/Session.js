@@ -53,6 +53,15 @@ module.exports = (sequelize, DataTypes) => {
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false
+    },
+    sessionLifetime: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 24
+    },
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   }, {
     tableName: 'Sessions',

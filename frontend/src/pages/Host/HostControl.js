@@ -2,7 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../../contexts/SessionContext';
 import socketService from '../../services/socketService';
+import { Clock } from 'react-feather';
 import { toast } from 'react-hot-toast';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 import './styles/HostControl.css';
 import axios from 'axios';
 
@@ -13,6 +20,9 @@ const HostControl = () => {
   const [socket, setSocket] = useState(null);
   const [sessionDetails, setSessionDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [showLifetimeDialog, setShowLifetimeDialog] = useState(false);
+  const [sessionLifetime, setSessionLifetime] = useState(24);
 
   const fetchSessionDetails = useCallback(async () => {
     try {
@@ -26,6 +36,7 @@ const HostControl = () => {
       );
       
       if (response.data.success) {
+        console.log('Session Details:', response.data.data);
         setSessionDetails(response.data.data);
         setParticipants(response.data.data.participants || []);
       } else {
@@ -86,6 +97,41 @@ const HostControl = () => {
     };
   }, [sessionId, setParticipants]);
 
+  useEffect(() => {
+    if (sessionDetails?.expiresAt) {
+      const updateTimer = () => {
+        const now = new Date().getTime();
+        const expires = new Date(sessionDetails.expiresAt).getTime();
+        const remaining = expires - now;
+        
+        if (remaining <= 0) {
+          setTimeRemaining(null);
+          toast.error('Session has expired');
+          // Optionally redirect or handle expired session
+        } else {
+          setTimeRemaining(remaining);
+        }
+      };
+
+      // Update immediately
+      updateTimer();
+      
+      // Then update every second
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionDetails?.expiresAt]);
+
+  const formatTimeRemaining = (milliseconds) => {
+    if (!milliseconds) return 'Expired';
+    
+    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
+
   if (loading) {
     return <div>Loading session details...</div>;
   }
@@ -105,6 +151,10 @@ const HostControl = () => {
     socket.emit('start-quiz', { sessionId });
   };
 
+  const handleSetLifetime = () => {
+    // Implement this function to set session lifetime
+  };
+
   return (
     <div className="host-control-container">
       <div className="host-control-panel">
@@ -112,8 +162,14 @@ const HostControl = () => {
           <h1>Host Control Panel</h1>
           <div className="session-info">
             <div className="session-code">
-              Session Code: <span>{sessionDetails?.sessionCode || 'Loading...'}</span>
+              Session Code: <span>{sessionDetails?.sessionCode}</span>
             </div>
+            {timeRemaining && (
+              <div className="session-timer">
+                <Clock size={16} />
+                <span>Expires in: {formatTimeRemaining(timeRemaining)}</span>
+              </div>
+            )}
             <div className="participant-count">
               {participants.length} Participants
             </div>
@@ -152,6 +208,28 @@ const HostControl = () => {
           Start Quiz Now
         </button>
       </div>
+
+      <Dialog open={showLifetimeDialog} onClose={() => setShowLifetimeDialog(false)}>
+        <DialogTitle>Set Session Lifetime</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Session Duration (hours)"
+            type="number"
+            fullWidth
+            value={sessionLifetime}
+            onChange={(e) => setSessionLifetime(Math.max(1, parseInt(e.target.value) || 1))}
+            inputProps={{ min: 1, max: 72 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowLifetimeDialog(false)}>Cancel</Button>
+          <Button onClick={handleSetLifetime} color="primary">
+            Set Duration
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
