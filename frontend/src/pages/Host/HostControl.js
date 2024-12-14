@@ -23,6 +23,7 @@ const HostControl = () => {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [showLifetimeDialog, setShowLifetimeDialog] = useState(false);
   const [sessionLifetime, setSessionLifetime] = useState(24);
+  const [isStarting, setIsStarting] = useState(false);
 
   const fetchSessionDetails = useCallback(async () => {
     try {
@@ -84,6 +85,10 @@ const HostControl = () => {
             console.error('Socket error:', error);
             toast.error(error.message);
           });
+
+          socketInstance.on('quiz-started', () => {
+            navigate(`/host/quiz/${sessionId}`);
+          });
         }
       } catch (error) {
         console.error('Socket initialization error:', error);
@@ -99,7 +104,7 @@ const HostControl = () => {
         socketInstance.disconnect();
       }
     };
-  }, [sessionId, setParticipants]);
+  }, [sessionId, setParticipants, navigate]);
 
   useEffect(() => {
     if (sessionDetails?.expiresAt) {
@@ -152,8 +157,19 @@ const HostControl = () => {
   };
 
   const startQuiz = () => {
-    if (!socket) return;
+    if (!socket || isStarting) {
+      return;
+    }
+
+    const approvedParticipants = participants.filter(p => p.status === 'approved');
+    if (approvedParticipants.length === 0) {
+      toast.error('Need at least one approved participant to start');
+      return;
+    }
+
+    setIsStarting(true);
     socket.emit('start-quiz', { sessionId });
+    toast.success('Starting quiz...');
   };
 
   const handleSetLifetime = () => {
@@ -208,9 +224,9 @@ const HostControl = () => {
         <button 
           className="start-quiz-button"
           onClick={startQuiz}
-          disabled={!participants.some(p => p.status === 'approved')}
+          disabled={isStarting || !participants.some(p => p.status === 'approved')}
         >
-          Start Quiz Now
+          {isStarting ? 'Starting...' : 'Start Quiz Now'}
         </button>
       </div>
 

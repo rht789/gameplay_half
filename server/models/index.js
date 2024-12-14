@@ -98,6 +98,16 @@ db.User.hasMany(db.Participant, {
   as: 'participations'
 });
 
+db.Session.hasOne(db.GameState, {
+  foreignKey: 'sessionID',
+  as: 'gameState'
+});
+
+db.Session.hasMany(db.PlayerResponse, {
+  foreignKey: 'sessionID',
+  as: 'responses'
+});
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 

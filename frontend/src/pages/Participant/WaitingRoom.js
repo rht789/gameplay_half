@@ -2,9 +2,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSession } from '../../contexts/SessionContext';
 import socketService from '../../services/socketService';
+import { Clock, Users } from 'react-feather';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import {
+  Box,
+  Paper,
+  Typography,
+  Chip,
+  CircularProgress
+} from '@mui/material';
 import './styles/WaitingRoom.css';
+import axios from 'axios';
 
 const WaitingRoom = () => {
   const { sessionId } = useParams();
@@ -12,8 +20,88 @@ const WaitingRoom = () => {
   const { setParticipants } = useSession();
   const [socket, setSocket] = useState(null);
   const [status, setStatus] = useState('waiting');
-  const [sessionDetails, setSessionDetails] = useState(null);
+  const [sessionDetails, setSessionDetails] = useState({
+    sessionCode: '',
+    quizName: '',
+    participants: [],
+    expiresAt: null
+  });
   const [loading, setLoading] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(true);
+
+  const initializeSocket = useCallback(async () => {
+    try {
+      console.log('Initializing socket connection...');
+      const socketInstance = socketService.connect();
+      
+      if (socketInstance) {
+        setSocket(socketInstance);
+        setIsConnecting(false);
+        
+        socketInstance.emit('join-waiting-room', { sessionId });
+
+        // Update status handling
+        socketInstance.on('participant-status-changed', ({ participantId, status: newStatus }) => {
+          console.log('Status change received:', { participantId, newStatus });
+          
+          const currentUserId = parseInt(localStorage.getItem('userId'));
+          
+          if (participantId === currentUserId) {
+            setStatus(newStatus);
+            if (newStatus === 'approved') {
+              toast.success("You've been approved!");
+            }
+          }
+
+          setSessionDetails(prev => {
+            if (!prev || !prev.participants) return prev;
+            return {
+              ...prev,
+              participants: prev.participants.map(p => 
+                p.id === participantId ? { ...p, status: newStatus } : p
+              )
+            };
+          });
+        });
+
+        // Handle participant updates
+        socketInstance.on('participants-updated', (updatedParticipants) => {
+          setSessionDetails(prev => ({
+            ...prev,
+            participants: updatedParticipants || []
+          }));
+        });
+
+        // Listen for quiz start
+        socketInstance.on('quiz-started', () => {
+          console.log('Quiz started, navigating to quiz page');
+          toast.success('Quiz is starting!');
+          navigate(`/quiz/${sessionId}/participate`);
+        });
+
+        socketInstance.on('error', (error) => {
+          console.error('Socket error:', error);
+          toast.error(error.message);
+        });
+
+        socketInstance.on('disconnect', () => {
+          console.log('Socket disconnected');
+          setIsConnecting(true);
+        });
+
+        socketInstance.on('reconnect', () => {
+          console.log('Socket reconnected');
+          socketInstance.emit('join-waiting-room', { sessionId });
+          setIsConnecting(false);
+        });
+      }
+    } catch (error) {
+      console.error('Socket initialization error:', error);
+      toast.error('Failed to connect to server');
+      setIsConnecting(false);
+    }
+  }, [sessionId, navigate]);
 
   const fetchSessionDetails = useCallback(async () => {
     try {
@@ -27,11 +115,18 @@ const WaitingRoom = () => {
       );
 
       if (response.data.success) {
-        setSessionDetails(response.data.data);
-        // Find current user's status
-        const currentParticipant = response.data.data.participants.find(
+        const data = response.data.data;
+        setSessionDetails(data || {
+          sessionCode: '',
+          quizName: '',
+          participants: [],
+          expiresAt: null
+        });
+        
+        const currentParticipant = data.participants?.find(
           p => p.id === parseInt(localStorage.getItem('userId'))
         );
+        
         if (currentParticipant) {
           setStatus(currentParticipant.status);
         }
@@ -39,129 +134,95 @@ const WaitingRoom = () => {
     } catch (error) {
       console.error('Error fetching session details:', error);
       toast.error('Failed to load session details');
+      navigate('/dashboard');
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, navigate]);
 
   useEffect(() => {
-    let socketInstance = null;
-
-    const initializeSocket = async () => {
-      try {
-        socketInstance = socketService.connect();
-        if (socketInstance) {
-          setSocket(socketInstance);
-          
-          socketInstance.emit('join-waiting-room', { sessionId });
-
-          // Update status handling
-          socketInstance.on('participant-status-changed', ({ participantId, status: newStatus }) => {
-            console.log('Status change received:', { participantId, newStatus, currentUserId: localStorage.getItem('userId') });
-            
-            const currentUserId = parseInt(localStorage.getItem('userId'));
-            
-            // Update both local status and session details
-            if (participantId === currentUserId) {
-              // Force status update for the current user
-              setStatus(prevStatus => {
-                console.log('Updating status from:', prevStatus, 'to:', newStatus);
-                return newStatus;
-              });
-
-              if (newStatus === 'approved') {
-                toast.success("You've been approved!");
-              }
-            }
-
-            // Keep the participants list update
-            setSessionDetails(prev => ({
-              ...prev,
-              participants: prev.participants.map(p => 
-                p.id === participantId ? { ...p, status: newStatus } : p
-              )
-            }));
-          });
-
-          // Handle participant updates
-          socketInstance.on('participants-updated', (updatedParticipants) => {
-            setSessionDetails(prev => ({
-              ...prev,
-              participants: updatedParticipants
-            }));
-          });
-
-          // Listen for quiz start
-          socketInstance.on('quiz-started', () => {
-            navigate(`/quiz/${sessionId}/participate`);
-          });
-
-          socketInstance.on('error', (error) => {
-            toast.error(error.message);
-          });
-        }
-      } catch (error) {
-        console.error('Socket connection error:', error);
-        toast.error('Failed to connect to server');
-      }
-    };
-
     initializeSocket();
     fetchSessionDetails();
 
     return () => {
-      if (socketInstance) {
-        socketInstance.disconnect();
+      if (socket) {
+        console.log('Cleaning up socket connection');
+        socket.disconnect();
       }
     };
-  }, [sessionId, navigate, fetchSessionDetails]);
+  }, [initializeSocket, fetchSessionDetails]);
 
-  if (loading) {
-    return <div className="waiting-room-container">
-      <div className="waiting-room-content">
-        <h2>Loading session details...</h2>
-      </div>
-    </div>;
+  if (loading || isConnecting) {
+    return (
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="80vh"
+        flexDirection="column"
+        gap={2}
+      >
+        <CircularProgress />
+        <Typography>
+          {loading ? 'Loading session details...' : 'Connecting to server...'}
+        </Typography>
+      </Box>
+    );
   }
 
   return (
     <div className="waiting-room-container">
-      <div className="waiting-room-content">
-        <div className="header-section">
-          <div className="quiz-code">
-            Session Code: <span>{sessionDetails?.sessionCode}</span>
-          </div>
-        </div>
+      <Paper className="waiting-room-content">
+        <Box className="header-section">
+          <Typography variant="h5" gutterBottom>
+            Session Code: <Chip label={sessionDetails.sessionCode} color="primary" />
+          </Typography>
+          <Typography variant="h4" gutterBottom>
+            {sessionDetails.quizName}
+          </Typography>
+        </Box>
 
-        <div className="quiz-info-section">
-          <h1>{sessionDetails?.quizName}</h1>
-          <div className="status-section">
-            <h2>Your Status: <span className={`status-badge ${status}`}>{status}</span></h2>
-            {status === 'waiting' && (
-              <p className="status-message">Please wait for the host to approve your participation</p>
-            )}
-            {status === 'approved' && (
-              <p className="status-message success">You're approved! Waiting for the quiz to start...</p>
-            )}
-          </div>
-        </div>
+        <Box className="status-section">
+          <Typography variant="h6" gutterBottom>
+            Your Status: <Chip 
+              label={status}
+              color={status === 'approved' ? 'success' : 'warning'}
+            />
+          </Typography>
+          <Typography>
+            {status === 'waiting' 
+              ? 'Please wait for the host to approve your participation'
+              : 'You are approved! Waiting for the quiz to start...'}
+          </Typography>
+        </Box>
 
-        <div className="participants-section">
-          <div className="section-header">
-            <h2>Participants ({sessionDetails?.participants?.length || 0})</h2>
-          </div>
-          <div className="participants-list">
-            {sessionDetails?.participants?.map(participant => (
-              <div key={participant.id} className="participant-item">
-                <span className="participant-name">{participant.username}</span>
-                <span className={`status-badge ${participant.status}`}>
-                  {participant.status}
-                </span>
-              </div>
+        <Box className="participants-section">
+          <Typography variant="h6" gutterBottom>
+            <Users size={20} style={{ marginRight: 8 }} />
+            Participants ({sessionDetails.participants?.length || 0})
+          </Typography>
+          
+          <Box className="participants-list">
+            {sessionDetails.participants?.map(participant => (
+              <Box 
+                key={participant.id}
+                className={`participant-item ${participant.status}`}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                p={2}
+              >
+                <Typography>{participant.username}</Typography>
+                <Chip
+                  label={participant.status}
+                  color={participant.status === 'approved' ? 'success' : 'warning'}
+                  size="small"
+                />
+              </Box>
             ))}
-          </div>
-        </div>
-      </div>
+          </Box>
+        </Box>
+      </Paper>
     </div>
   );
 };

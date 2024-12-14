@@ -30,6 +30,8 @@ import WaitingRoom from './pages/Participant/WaitingRoom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import Profile from './pages/Profile/Profile';
 import { SessionProvider } from './contexts/SessionContext';
+import QuizHost from './pages/Host/QuizHost';
+import QuizParticipant from './pages/Participant/QuizParticipant';
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -68,6 +70,8 @@ function App() {
                         <Profile />
                       </ProtectedRoute>
                     } />
+                    <Route path="/host/quiz/:sessionId" element={<ProtectedRoute><QuizHost /></ProtectedRoute>} />
+                    <Route path="/quiz/:sessionId/participate" element={<ProtectedRoute><QuizParticipant /></ProtectedRoute>} />
                   </Routes>
                 </main>
                 <Footer />

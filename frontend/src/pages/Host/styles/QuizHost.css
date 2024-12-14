@@ -1,0 +1,52 @@
+.quiz-host-container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.question-display {
+  padding: 24px;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.timer-warning .MuiLinearProgress-bar {
+  background-color: #ff9800;
+}
+
+.question-content {
+  margin-top: 24px;
+}
+
+.options-grid {
+  margin-top: 24px;
+}
+
+.option-item {
+  padding: 16px;
+  text-align: center;
+  height: 100%;
+  transition: background-color 0.2s;
+}
+
+.waiting-display {
+  padding: 48px;
+  text-align: center;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.score-item:last-child {
+  border-bottom: none;
+} 

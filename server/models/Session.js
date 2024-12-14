@@ -62,6 +62,10 @@ module.exports = (sequelize, DataTypes) => {
     expiresAt: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    status: {
+      type: DataTypes.ENUM('waiting', 'in_progress', 'completed'),
+      defaultValue: 'waiting'
     }
   }, {
     tableName: 'Sessions',
