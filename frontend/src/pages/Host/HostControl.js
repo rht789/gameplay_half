@@ -67,11 +67,14 @@ const HostControl = () => {
           
           socketInstance.on('participant-joined', (participant) => {
             console.log('Participant joined:', participant);
-            setParticipants(prev => [...prev, participant]);
+            setParticipants(prev => {
+              const exists = prev.some(p => p.id === participant.id);
+              return exists ? prev : [...prev, participant];
+            });
           });
 
           socketInstance.on('participant-status-changed', ({ participantId, status }) => {
-            console.log('Participant status changed:', participantId, status);
+            console.log('Status change received in host:', { participantId, status });
             setParticipants(prev => 
               prev.map(p => p.id === participantId ? { ...p, status } : p)
             );
@@ -89,6 +92,7 @@ const HostControl = () => {
     };
 
     initializeSocket();
+    fetchSessionDetails();
 
     return () => {
       if (socketInstance) {
@@ -138,6 +142,7 @@ const HostControl = () => {
 
   const handleApprove = (participantId) => {
     if (!socket) return;
+    console.log('Sending approve request:', { sessionId, participantId });
     socket.emit('approve-participant', { sessionId, participantId });
   };
 

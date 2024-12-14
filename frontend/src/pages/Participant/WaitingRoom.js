@@ -53,16 +53,42 @@ const WaitingRoom = () => {
         if (socketInstance) {
           setSocket(socketInstance);
           
-          socketInstance.emit('join-session', { sessionId });
+          socketInstance.emit('join-waiting-room', { sessionId });
 
-          // Listen for status updates
+          // Update status handling
           socketInstance.on('participant-status-changed', ({ participantId, status: newStatus }) => {
-            if (participantId === parseInt(localStorage.getItem('userId'))) {
-              setStatus(newStatus);
+            console.log('Status change received:', { participantId, newStatus, currentUserId: localStorage.getItem('userId') });
+            
+            const currentUserId = parseInt(localStorage.getItem('userId'));
+            
+            // Update both local status and session details
+            if (participantId === currentUserId) {
+              // Force status update for the current user
+              setStatus(prevStatus => {
+                console.log('Updating status from:', prevStatus, 'to:', newStatus);
+                return newStatus;
+              });
+
               if (newStatus === 'approved') {
                 toast.success("You've been approved!");
               }
             }
+
+            // Keep the participants list update
+            setSessionDetails(prev => ({
+              ...prev,
+              participants: prev.participants.map(p => 
+                p.id === participantId ? { ...p, status: newStatus } : p
+              )
+            }));
+          });
+
+          // Handle participant updates
+          socketInstance.on('participants-updated', (updatedParticipants) => {
+            setSessionDetails(prev => ({
+              ...prev,
+              participants: updatedParticipants
+            }));
           });
 
           // Listen for quiz start
@@ -75,7 +101,7 @@ const WaitingRoom = () => {
           });
         }
       } catch (error) {
-        console.error('Socket initialization error:', error);
+        console.error('Socket connection error:', error);
         toast.error('Failed to connect to server');
       }
     };

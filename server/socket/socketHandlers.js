@@ -24,7 +24,6 @@ module.exports = (io) => {
 
         if (!session) throw new Error('Session not found');
 
-        // Check if user is a participant
         const participant = await Participant.findOne({
           where: { 
             sessionID: sessionId,
@@ -35,10 +34,15 @@ module.exports = (io) => {
         if (!participant) throw new Error('Not authorized to join this session');
 
         socket.join(`session:${sessionId}`);
-        socket.emit('status-update', { status: participant.status });
         
-        // Notify host about new participant
-        io.to(`session:${sessionId}`).emit('participant-joined', {
+        // Emit current status to the joining participant
+        socket.emit('participant-status-changed', { 
+          participantId: participant.participantID,
+          status: participant.status 
+        });
+        
+        // Notify all clients in the session about the new participant
+        io.in(`session:${sessionId}`).emit('participant-joined', {
           id: participant.participantID,
           username: socket.user.username,
           status: participant.status
@@ -86,6 +90,8 @@ module.exports = (io) => {
     // Host approving a participant
     socket.on('approve-participant', async ({ sessionId, participantId }) => {
       try {
+        console.log('Approve participant request:', { sessionId, participantId });
+        
         const session = await Session.findOne({
           where: { sessionID: sessionId, hostID: socket.user.id }
         });
@@ -97,16 +103,15 @@ module.exports = (io) => {
 
         await participant.update({ status: 'approved' });
         
+        console.log('Emitting status change:', { participantId, status: 'approved' });
+        
+        // Emit to all clients in the session
         io.to(`session:${sessionId}`).emit('participant-status-changed', {
-          participantId,
-          status: 'approved'
-        });
-
-        // Notify the specific participant
-        socket.to(`session:${sessionId}`).emit('status-update', {
+          participantId: parseInt(participantId),
           status: 'approved'
         });
       } catch (err) {
+        console.error('Error in approve-participant:', err);
         socket.emit('error', { message: err.message });
       }
     });
